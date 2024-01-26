@@ -1,2 +1,2 @@
 # micro-project
-some instersting micro project
+some interesting micro project
