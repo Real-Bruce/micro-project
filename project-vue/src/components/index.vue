@@ -30,6 +30,7 @@
         <el-col :span="4" align="middle">
           <div class="btn-group">
             <el-switch
+                :disabled="isLoading || isAutoplay"
                 v-model="isAutoGroupList"
                 class="mb-2"
                 size="large"
