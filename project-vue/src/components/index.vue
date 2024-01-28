@@ -17,9 +17,9 @@
                 trigger="click"
                 indicator-position="none"
                 @change="leftChangePage"
-                :initial-index="0"
-                :loop="false"
-                ref="carouselRef"
+                :initial-index="startIndex"
+                :loop="isLoop"
+                ref="carouselLeftRef"
             >
               <el-carousel-item v-for="item in listManual" :key="item">
                 <h3 text="2xl" justify="center">{{ item }}</h3>
@@ -32,9 +32,11 @@
             <el-button type="success" v-if="!isAutoplay" :disabled="listAuto.length <= 1" @click="clickChange">开始匹配
             </el-button>
             <el-button type="danger" v-if="isAutoplay" @click="clickChange">停止匹配</el-button>
-<!--            <el-button type="warning" :disabled="true" @click="matchChange">分组切换</el-button>-->
-            <el-button type="primary" :disabled="isAutoplay && listAuto.length <= 0" @click="groupList">分组</el-button>
-            <el-button type="warning" @click="dialogVisible = true">分组结果</el-button>
+            <!--            <el-button type="warning" :disabled="true" @click="matchChange">分组切换</el-button>-->
+            <el-button type="primary" :disabled="isAutoplay || listAuto.length <= 0 || listManual <= 0"
+                       @click="groupList">分组
+            </el-button>
+            <el-button type="warning" @click="showDialog">分组结果</el-button>
             <el-button type="info" :disabled="isAutoplay" @click="clearGroupList">重置</el-button>
           </div>
         </el-col>
@@ -51,6 +53,7 @@
                 @change="changePage"
                 :initial-index="startIndex"
                 :loop="isLoop"
+                ref="carouselRightRef"
             >
               <el-carousel-item v-for="item in listAuto" :key="item">
                 <h3 text="2xl" justify="center">{{ item }}</h3>
@@ -61,10 +64,13 @@
       </el-row>
     </div>
 
-    <div class="c-title">
+    <div v-if="listCombo.length > 0" class="c-result">
       <!-- 此处为结果集合-->
-      <div class="t-list" style="display: flex; flex-wrap: wrap;">
-        <div class="ml-4 r-group" v-for="item in listCombo.slice(0,4)" :key=item>
+      <div style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center;">
+        <h4>当前分组结果</h4>
+      </div>
+      <div class="t-list" style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center;">
+        <div class="ml-4 r-group" v-for="item in listCombo.slice(listCombo.length - 1, listCombo.length)" :key=item>
           <el-tag class="ml-2" type="success">{{ item.itemManual }}</el-tag>
           <el-tag class="ml-2" style="margin-left: 10px" type="danger">{{ item.itemAuto }}</el-tag>
         </div>
@@ -88,8 +94,10 @@
 </template>
 
 <script>
+import {ElMessage, ElMessageBox} from 'element-plus'
+
 export default {
-  inject:['reload'],  //注入依赖
+  inject: ['reload'],  //注入依赖
   name: 'HelloWorld',
   props: {
     msg: String,
@@ -104,29 +112,64 @@ export default {
       ,
       startIndex: 0
       ,
+      // 是否循环显示
       isLoop: true
       ,
       listCombo: []
       ,
       itemManual: ""
       ,
+      // 是否自动切换
       itemAuto: ""
       ,
       dialogVisible: false
+      ,
+      // 不重复随机数数组
+      listRandom: new Set()
     }
   },
   methods: {
+    // 展示弹出框
+    showDialog() {
+      if (this.listCombo <= 0) {
+        ElMessage({
+          message: '当前暂无分组信息!',
+          type: 'warning',
+        })
+      } else {
+        this.dialogVisible = true;
+      }
+    },
     // 重置
     clearGroupList() {
-      this.listCombo = []
-      this.itemManual = this.listManual[0]
-      this.itemAuto = this.listAuto[0]
-      this.startIndex = 0
-      this.reload();
+      ElMessageBox.confirm(
+          '是否重置当前分组？',
+          'Warning',
+          {
+            confirmButtonText: 'OK',
+            cancelButtonText: 'Cancel',
+            type: 'warning',
+          }
+      ).then(() => {
+        ElMessage({
+          type: 'success',
+          message: '重置分组成功',
+        })
+        this.listCombo = []
+        this.itemManual = this.listManual[0]
+        this.itemAuto = this.listAuto[0]
+        this.startIndex = 0
+        this.reload();
+      }).catch(() => {
+        ElMessage({
+          type: 'info',
+          message: '取消重置',
+        })
+      })
     },
     // 构成分组
     groupList: function () {
-      console.log("构成分组")
+      console.log("-----构成分组-----")
       let data = {
         itemManual: this.itemManual,
         itemAuto: this.itemAuto
@@ -139,13 +182,19 @@ export default {
         return item !== this.itemAuto
       });
       // 设置随机位置
-      this.startIndex = this.getRandomArbitrary(0, this.listAuto.length);
+      let random = this.getRandomArbitrary(0, this.listAuto.length);
+      this.startIndex = random
+      this.$refs.carouselLeftRef.next();
+
+      console.log("生成的随机数", this.startIndex);
+      console.log("随机数数组", this.listRandom);
+
 
       // 操作手动组
-      this.$refs.carouselRef.next
-      /*this.listManual = this.listManual.filter(item => {
+      this.listManual = this.listManual.filter(item => {
         return item !== this.itemManual
-      });*/
+      });
+      this.$refs.carouselRightRef.next()
     },
     // 切换左右分组
     matchChange() {
@@ -160,16 +209,10 @@ export default {
     },
     // 左边轮盘
     leftChangePage(data) {
-      console.log("----------------")
-      console.log("手动切换当前值：", data)
-      console.log("listA的值：",)
       this.itemManual = this.listManual[data]
     },
     // 右轮盘
     changePage(data) {
-      console.log("----------------")
-      console.log("自动切换当前值：", data)
-      console.log("listB的值：", this.listManual[data])
       this.itemAuto = this.listAuto[data]
     },
     getRandomArbitrary(min, max) {
@@ -198,8 +241,8 @@ export default {
   color: aliceblue;
 //padding-bottom: 100px; height: calc(100vh - 0px); //padding-top: 20px; padding-left: 20px; padding-right: 20px;
 
-  .c-title {
-    padding-top: 80px;
+  .c-result {
+    padding-top: 40px;
 
     .t-list {
       .r-group {
