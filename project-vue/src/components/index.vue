@@ -12,8 +12,8 @@
                 height="400px"
                 direction="vertical"
                 type="card"
-                :autoplay="false"
-                interval="400"
+                :autoplay="isAutoplay"
+                interval="150"
                 trigger="click"
                 indicator-position="none"
                 @change="leftChangePage"
@@ -29,14 +29,29 @@
         </el-col>
         <el-col :span="4" align="middle">
           <div class="btn-group">
-            <el-button type="success" v-if="!isAutoplay" :disabled="listAuto.length <= 1" @click="clickChange">开始匹配
+            <el-switch
+                v-model="isAutoGroupList"
+                class="mb-2"
+                size="large"
+                style="--el-switch-on-color: #13ce66; --el-switch-off-color: #409EFF"
+                active-text="自动分组"
+                inactive-text="手动分组"
+                :active-action-icon="Cpu"
+                :inactive-action-icon="User"
+            />
+            <div v-if="!isAutoGroupList">
+              <el-button type="success" v-if="!isAutoplay" :disabled="listAuto.length <= 1" @click="clickChange">开始匹配
+              </el-button>
+              <el-button type="danger" :disabled="isLoading" v-if="isAutoplay" @click="clickChange">停止匹配</el-button>
+              <el-button type="primary" :disabled="isAutoplay || listAuto.length <= 0 || listManual <= 0"
+                         @click="groupList">分组
+              </el-button>
+            </div>
+            <el-button v-if="isAutoGroupList" type="success" :disabled="isLoading || listAuto.length <= 0 || listManual <= 0" @click="autoGroupList" :loading="isLoading">
+              自动分组
             </el-button>
-            <el-button type="danger" v-if="isAutoplay" @click="clickChange">停止匹配</el-button>
             <!--            <el-button type="warning" :disabled="true" @click="matchChange">分组切换</el-button>-->
-            <el-button type="primary" :disabled="isAutoplay || listAuto.length <= 0 || listManual <= 0"
-                       @click="groupList">分组
-            </el-button>
-            <el-button type="warning" @click="showDialog">分组结果</el-button>
+            <el-button type="warning" :disabled="isLoading || isAutoplay" @click="showDialog">分组结果</el-button>
             <el-button type="info" :disabled="isAutoplay" @click="clearGroupList">重置</el-button>
           </div>
         </el-col>
@@ -95,8 +110,23 @@
 
 <script>
 import {ElMessage, ElMessageBox} from 'element-plus'
+import {Cpu, Hide, User, View} from "@element-plus/icons-vue";
 
 export default {
+  computed: {
+    User() {
+      return User
+    },
+    Cpu() {
+      return Cpu
+    },
+    View() {
+      return View
+    },
+    Hide() {
+      return Hide
+    }
+  },
   inject: ['reload'],  //注入依赖
   name: 'HelloWorld',
   props: {
@@ -126,9 +156,29 @@ export default {
       ,
       // 不重复随机数数组
       listRandom: new Set()
+      ,
+      // 是否加载中
+      isLoading: false
+      ,
+      // 是否采用自动分组
+      isAutoGroupList: false
     }
   },
   methods: {
+    // 自动分组
+    autoGroupList() {
+      this.clickChange()
+      this.loadingChange()
+
+      setTimeout(() => {
+        this.groupList()
+        this.clickChange()
+        this.loadingChange()
+      }, 3000)
+    },
+    loadingChange() {
+      this.isLoading = !this.isLoading
+    },
     // 展示弹出框
     showDialog() {
       if (this.listCombo <= 0) {
@@ -144,7 +194,6 @@ export default {
     clearGroupList() {
       ElMessageBox.confirm(
           '是否重置当前分组？',
-          'Warning',
           {
             confirmButtonText: 'OK',
             cancelButtonText: 'Cancel',
