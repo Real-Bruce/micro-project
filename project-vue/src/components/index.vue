@@ -1,6 +1,6 @@
 <template>
   <div class="navbar" style="display: flex; align-items: center; justify-content: center">
-    <img width="50" alt="logo" src="@/assets/logo.png">
+    <img width="120" alt="logo" src="@/assets/logo.png">
     <h1>{{ msg }}</h1>
   </div>
   <div class="container">
@@ -47,7 +47,9 @@
                          @click="groupList">分组
               </el-button>
             </div>
-            <el-button v-if="isAutoGroupList" type="success" :disabled="isLoading || listAuto.length <= 0 || listManual <= 0" @click="autoGroupList" :loading="isLoading">
+            <el-button v-if="isAutoGroupList" type="success"
+                       :disabled="isLoading || listAuto.length <= 0 || listManual <= 0" @click="autoGroupList"
+                       :loading="isLoading">
               自动分组
             </el-button>
             <!--            <el-button type="warning" :disabled="true" @click="matchChange">分组切换</el-button>-->
@@ -105,6 +107,10 @@
         </div>
       </div>
     </el-dialog>
+  </div>
+
+  <div class="c-bottom" style="display: flex; align-items: center; justify-content: center">
+    <div>Copyright © {{ new Date().getFullYear() }} Bruce All rights reserved.</div>
   </div>
 </template>
 
@@ -288,10 +294,12 @@ export default {
 .container {
   background-color: #2c3e50;
   color: aliceblue;
-//padding-bottom: 100px; height: calc(100vh - 0px); //padding-top: 20px; padding-left: 20px; padding-right: 20px;
+  height: calc(100vh - 10px);
+  padding-left: 20px;
+  padding-right: 20px;
 
   .c-result {
-    padding-top: 40px;
+    padding-top: 30px;
 
     .t-list {
       .r-group {
@@ -337,6 +345,15 @@ export default {
       border-radius: 5px;
     }
   }
+}
+
+.c-bottom {
+  position: fixed;
+  background-color: #2c3e50;
+  color: aliceblue;
+  bottom: 0;
+  width: 100%;
+  padding-bottom: 10px;
 }
 
 .el-carousel__item h3 {
