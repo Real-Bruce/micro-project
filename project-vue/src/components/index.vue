@@ -17,9 +17,10 @@
                 trigger="click"
                 indicator-position="none"
                 @change="leftChangePage"
-                :initial-index="startIndex"
+                :initial-index="leftStartIndex"
                 :loop="isLoop"
                 ref="carouselLeftRef"
+                :pause-on-hover="false"
             >
               <el-carousel-item v-for="item in listManual" :key="item">
                 <h3 text="2xl" justify="center">{{ item }}</h3>
@@ -72,6 +73,7 @@
                 :initial-index="startIndex"
                 :loop="isLoop"
                 ref="carouselRightRef"
+                :pause-on-hover="false"
             >
               <el-carousel-item v-for="item in listAuto" :key="item">
                 <h3 text="2xl" justify="center">{{ item }}</h3>
@@ -149,6 +151,8 @@ export default {
       ,
       startIndex: 0
       ,
+      leftStartIndex: 0
+      ,
       // 是否循环显示
       isLoop: true
       ,
@@ -169,18 +173,44 @@ export default {
       ,
       // 是否采用自动分组
       isAutoGroupList: false
+      ,
+      // 是否开启分组
+      isGroupOption: false
     }
   },
   methods: {
     // 自动分组
     autoGroupList() {
+      // 首次点击仅循环不分组
+      if (this.isGroupOption) {
+        this.groupList()
+      }
+      // 最后一次仅分组不循环
+      if (this.listManual.length <= 1 || this.listAuto.length <= 1) {
+        return;
+      }
+
       this.clickChange()
       this.loadingChange()
 
       setTimeout(() => {
-        this.groupList()
-        this.clickChange()
         this.loadingChange()
+        this.clickChange()
+        this.isGroupOption = true
+      }, 3000)
+
+    },
+    // 自动分组-定时器实现
+    autoGroupListOfTimeOut() {
+      this.clickChange()
+      this.loadingChange()
+
+      setTimeout(() => {
+        setTimeout(() => {
+          this.groupList()
+          this.loadingChange()
+        }, 2000)
+        this.clickChange()
       }, 3000)
     },
     loadingChange() {
@@ -211,10 +241,7 @@ export default {
           type: 'success',
           message: '重置分组成功',
         })
-        this.listCombo = []
-        this.itemManual = this.listManual[0]
-        this.itemAuto = this.listAuto[0]
-        this.startIndex = 0
+        this.initGroup()
         this.reload();
       }).catch(() => {
         ElMessage({
@@ -223,33 +250,36 @@ export default {
         })
       })
     },
+    initGroup() {
+      this.listCombo = []
+      let randomA = this.getRandomArbitrary(0, this.listManual.length);
+      let randomB = this.getRandomArbitrary(0, this.listAuto.length);
+      this.leftStartIndex = randomA
+      this.startIndex = randomB
+      this.itemManual = this.listManual[randomA]
+      this.itemAuto = this.listAuto[randomB]
+    },
     // 构成分组
     groupList: function () {
-      console.log("-----构成分组-----")
       let data = {
         itemManual: this.itemManual,
         itemAuto: this.itemAuto
       }
       // 构成分组
       this.listCombo.push(data)
-      console.log("构成数组：", data)
       // 操作自动组，删除匹配组
       this.listAuto = this.listAuto.filter(item => {
         return item !== this.itemAuto
       });
       // 设置随机位置
-      let random = this.getRandomArbitrary(0, this.listAuto.length);
-      this.startIndex = random
+      this.startIndex = this.getRandomArbitrary(0, this.listAuto.length)
       this.$refs.carouselLeftRef.next();
-
-      console.log("生成的随机数", this.startIndex);
-      console.log("随机数数组", this.listRandom);
-
 
       // 操作手动组
       this.listManual = this.listManual.filter(item => {
         return item !== this.itemManual
       });
+      this.leftStartIndex = this.getRandomArbitrary(0, this.listAuto.length);
       this.$refs.carouselRightRef.next()
     },
     // 切换左右分组
@@ -275,9 +305,8 @@ export default {
       return Math.floor(Math.random() * (max - min)) + min;
     }
   },
-  mounted() {
-    this.itemManual = this.listManual[0]
-    this.itemAuto = this.listAuto[0]
+  beforeMount() {
+    this.initGroup()
   }
 }
 </script>
